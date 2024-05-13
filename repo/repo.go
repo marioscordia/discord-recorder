@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -37,6 +38,7 @@ func NewS3Repository(ctx context.Context, region, url, accessKey, secretKey stri
 type S3 interface {
 	Upload(ctx context.Context, file io.ReadSeeker, fileName, bucket string) (string, error)
 	Delete(ctx context.Context, fileUrl, bucket string) error
+	GetURL(ctx context.Context, bucketName, fileName string) (string, error)
 }
 
 type s3 struct {
@@ -57,6 +59,19 @@ func (s *s3) Upload(ctx context.Context, file io.ReadSeeker, fileName, bucket st
 	}
 
 	return fmt.Sprintf("%s/%s/%s", s.url, bucket, fileName), nil
+}
+
+func (s *s3) GetURL(ctx context.Context, bucketName, fileName string) (string, error) {
+	req, _ := s.svc.GetObjectRequest(&s3Serv.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(fileName),
+	})
+	url, err := req.Presign(7 * 24 * time.Hour)
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
 }
 
 func (s *s3) Delete(ctx context.Context, fileUrl, bucket string) error {

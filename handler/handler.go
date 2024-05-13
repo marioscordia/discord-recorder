@@ -44,7 +44,7 @@ func (h *Handler) voiceRoomListener(s *discordgo.Session, gID, cID string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(h.cfg.TimeLimit)*time.Minute)
 	defer cancel()
 
-	end := make(chan struct{})
+	end := make(chan string)
 
 	go func(ctx context.Context, vc *discordgo.VoiceConnection) {
 		file, err := os.CreateTemp("", "temp-*.ogg")
@@ -91,11 +91,24 @@ func (h *Handler) voiceRoomListener(s *discordgo.Session, gID, cID string) {
 
 		h.log.Info("Successfully recorded and uploaded audio file!")
 
-		end <- struct{}{}
+		url, err := h.s3.GetURL(context.Background(), h.cfg.S3BucketName, filename)
+		if err != nil {
+			h.log.Errorln("error getting url file", err)
+			return
+		}
+
+		end <- url
 
 	}(ctx, vc)
 
-	<-end
+	url := <-end
+
+	if _, err := s.ChannelMessageSend(vc.ChannelID, url); err != nil {
+		h.log.Errorln("error sending message", err)
+		return
+	}
+
+	h.log.Println("EVENT SUCCESSFUL")
 }
 
 func createPionRTPPacket(p *discordgo.Packet) *rtp.Packet {
