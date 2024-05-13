@@ -18,3 +18,12 @@
 ```
 
 ## NOTE: please configure your Amazon S3 by giving permission to upload files to your bucket
+
+## Methodology
+
+1. I used clean architecture for this project, since the bot also operates as backend service, where we have handler, service and repository layers. However, I need to mention that I did not properly implemented the service layer by putting the service functionality in the same folder as hadndler part.
+2. Used libraries:
+   - Discordgo for interacting with Discord
+   - Pion for recording audio from voice channel and recording it to a file
+   - Amazon S3 SDK for uploading files and getting their URLs
+   - Logrus for logging
